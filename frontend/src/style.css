@@ -210,6 +210,32 @@ body {
   cursor: pointer;
 }
 
+.panel-filter {
+  padding: 4px 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-filter input {
+  width: 100%;
+  padding: 4px 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+}
+
+.panel-filter input:focus {
+  border-color: var(--accent);
+}
+
+.panel-filter input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
 #labels-section {
   flex: 1;
   min-height: 120px;
@@ -311,6 +337,11 @@ body {
 
 #stats-arrow.open {
   transform: rotate(90deg);
+}
+
+#stats-content {
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 #stats-summary {

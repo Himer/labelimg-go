@@ -20,6 +20,8 @@
   const useDefaultLabelCheckbox = document.getElementById('use-default-label');
   const btnSave = document.getElementById('btn-save');
   const formatSelect = document.getElementById('format-select');
+  const labelsFilter = document.getElementById('labels-filter');
+  const filesFilter = document.getElementById('files-filter');
 
   // State
   let files = [];
@@ -233,8 +235,11 @@
     labelsList.innerHTML = '';
     const shapes = lc.shapes;
     shapeCount.textContent = `(${shapes.length})`;
+    const filterText = labelsFilter.value.trim().toLowerCase();
 
     shapes.forEach((shape, i) => {
+      if (filterText && !shape.label.toLowerCase().includes(filterText)) return;
+
       const item = document.createElement('div');
       item.className = 'label-item' + (i === lc.selectedIndex ? ' selected' : '');
 
@@ -270,8 +275,11 @@
   function updateFilesList() {
     filesList.innerHTML = '';
     fileCount.textContent = `(${files.length})`;
+    const filterText = filesFilter.value.trim().toLowerCase();
 
     files.forEach((file, i) => {
+      if (filterText && !file.name.toLowerCase().includes(filterText)) return;
+
       const item = document.createElement('div');
       item.className = 'file-item';
       if (currentImageData && currentImageData.index === i) {
@@ -479,6 +487,8 @@
     // Skip if modal is open or input is focused
     if (document.getElementById('label-dialog').style.display === 'flex') return;
     if (document.activeElement === labelInput) return;
+    if (document.activeElement === labelsFilter) return;
+    if (document.activeElement === filesFilter) return;
     if (document.activeElement === formatSelect) return;
 
     const ctrl = e.ctrlKey || e.metaKey;
@@ -550,6 +560,10 @@
         break;
     }
   });
+
+  // --- Filter inputs ---
+  labelsFilter.addEventListener('input', () => updateLabelsPanel());
+  filesFilter.addEventListener('input', () => updateFilesList());
 
   // Initial save button state
   updateSaveButton();

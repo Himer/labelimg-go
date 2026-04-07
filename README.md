@@ -2,6 +2,8 @@
 
 基于 [Wails v2](https://wails.io/) 的跨平台桌面图片标注工具。支持 YOLO、PascalVOC、CreateML 三种标注格式。
 
+![LabelImg Go - Windows 界面](testdata/example.png)
+
 ## 下载安装
 
 前往 [Releases](../../releases) 页面下载对应平台的预编译包：
