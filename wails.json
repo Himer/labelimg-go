@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "labelimg-go",
+  "outputfilename": "labelimg-go",
+  "frontend:install": "npm install",
+  "frontend:build": "echo build",
+  "frontend:dev:watcher": "",
+  "frontend:dev:serverUrl": "",
+  "author": {
+    "name": "LabelImg",
+    "email": ""
+  }
+}
