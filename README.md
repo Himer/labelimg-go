@@ -1,6 +1,6 @@
 # LabelImg Go
 
-基于 [Wails v2](https://wails.io/) 的跨平台桌面图片标注工具。支持 YOLO、PascalVOC、CreateML 三种标注格式。
+仿制 [labelImg](https://github.com/HumanSignal/labelImg) 用golang实现的跨平台桌面图片标注工具。支持 YOLO、PascalVOC、CreateML 三种标注格式。
 
 ![LabelImg Go - Windows 界面](testdata/example.png)
 
