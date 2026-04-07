@@ -83,9 +83,25 @@ jobs:
         if: matrix.goos == 'linux' && matrix.goarch == 'arm64'
         run: |
           sudo dpkg --add-architecture arm64
-          sudo sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ $(lsb_release -cs) main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
-          echo "deb [arch=arm64] http://ports.ubuntu.com/ $(lsb_release -cs)-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+
+          # Remove default sources that don't support arm64
+          sudo rm -f /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list
+
+          CODENAME=$(lsb_release -cs)
+          # amd64 packages from default archive
+          sudo tee /etc/apt/sources.list.d/amd64.list <<AEOF
+          deb [arch=amd64] http://archive.ubuntu.com/ubuntu ${CODENAME} main restricted universe multiverse
+          deb [arch=amd64] http://archive.ubuntu.com/ubuntu ${CODENAME}-updates main restricted universe multiverse
+          deb [arch=amd64] http://archive.ubuntu.com/ubuntu ${CODENAME}-security main restricted universe multiverse
+          AEOF
+
+          # arm64 packages from ports
+          sudo tee /etc/apt/sources.list.d/arm64.list <<BEOF
+          deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME} main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME}-updates main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME}-security main restricted universe multiverse
+          BEOF
+
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
           sudo apt-get install -y libgtk-3-dev:arm64 libwebkit2gtk-4.1-dev:arm64
