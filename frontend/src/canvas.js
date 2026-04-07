@@ -47,6 +47,10 @@ class LabelCanvas {
     // Corner handle size
     this.handleSize = 6;
 
+    // Crosshair (screen coords, updated on mousemove)
+    this._mouseScreenX = -1;
+    this._mouseScreenY = -1;
+
     this._bindEvents();
     this._resize();
     window.addEventListener('resize', () => this._resize());
@@ -149,6 +153,10 @@ class LabelCanvas {
     const sy = e.clientY - rect.top;
     const imgPos = this.screenToImage(sx, sy);
 
+    // Track mouse for crosshair
+    this._mouseScreenX = sx;
+    this._mouseScreenY = sy;
+
     if (this.onMouseMove) {
       this.onMouseMove(Math.round(imgPos.x), Math.round(imgPos.y));
     }
@@ -205,6 +213,11 @@ class LabelCanvas {
       this.canvas.style.cursor = 'move';
     } else {
       this.canvas.style.cursor = this.mode === 'create' ? 'crosshair' : 'default';
+    }
+
+    // Re-render for crosshair update in create mode
+    if (this.mode === 'create' && this.image) {
+      this.render();
     }
   }
 
@@ -441,6 +454,25 @@ class LabelCanvas {
       ctx.setLineDash([6, 3]);
       ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
       ctx.setLineDash([]);
+    }
+
+    // Draw crosshair in create mode
+    if (this.mode === 'create' && this._mouseScreenX >= 0 && this.image) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([4, 4]);
+      // Vertical line
+      ctx.beginPath();
+      ctx.moveTo(this._mouseScreenX, 0);
+      ctx.lineTo(this._mouseScreenX, h);
+      ctx.stroke();
+      // Horizontal line
+      ctx.beginPath();
+      ctx.moveTo(0, this._mouseScreenY);
+      ctx.lineTo(w, this._mouseScreenY);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 

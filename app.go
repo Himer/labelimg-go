@@ -381,3 +381,84 @@ func (a *App) addToClassList(label string) {
 	}
 	a.classList = append(a.classList, label)
 }
+
+// StatsData holds annotation statistics.
+type StatsData struct {
+	TotalImages    int            `json:"totalImages"`
+	AnnotatedCount int            `json:"annotatedCount"`
+	TotalBoxes     int            `json:"totalBoxes"`
+	ClassCounts    map[string]int `json:"classCounts"`
+}
+
+// GetStats scans all images and returns annotation statistics.
+func (a *App) GetStats() *StatsData {
+	stats := &StatsData{
+		TotalImages: len(a.imgList),
+		ClassCounts: make(map[string]int),
+	}
+
+	dir := a.saveDir
+
+	for _, imgPath := range a.imgList {
+		saveDir := dir
+		if saveDir == "" {
+			saveDir = filepath.Dir(imgPath)
+		}
+		baseName := strings.TrimSuffix(filepath.Base(imgPath), filepath.Ext(imgPath))
+
+		var hasAnnotation bool
+		switch a.saveFormat {
+		case libs.FormatPascalVOC:
+			xmlPath := filepath.Join(saveDir, baseName+".xml")
+			if _, err := os.Stat(xmlPath); err == nil {
+				reader, err := libs.NewPascalVocReader(xmlPath)
+				if err == nil {
+					shapes := reader.GetShapes()
+					if len(shapes) > 0 {
+						hasAnnotation = true
+						stats.TotalBoxes += len(shapes)
+						for _, s := range shapes {
+							stats.ClassCounts[s.Label]++
+						}
+					}
+				}
+			}
+		case libs.FormatCreateML:
+			jsonPath := filepath.Join(saveDir, baseName+".json")
+			if _, err := os.Stat(jsonPath); err == nil {
+				reader, err := libs.NewCreateMLReader(jsonPath, imgPath)
+				if err == nil {
+					shapes := reader.GetShapes()
+					if len(shapes) > 0 {
+						hasAnnotation = true
+						stats.TotalBoxes += len(shapes)
+						for _, s := range shapes {
+							stats.ClassCounts[s.Label]++
+						}
+					}
+				}
+			}
+		default: // YOLO
+			txtPath := filepath.Join(saveDir, baseName+".txt")
+			if _, err := os.Stat(txtPath); err == nil {
+				reader, err := libs.NewYOLOReader(txtPath, 100, 100, 3, "")
+				if err == nil {
+					shapes := reader.GetShapes()
+					if len(shapes) > 0 {
+						hasAnnotation = true
+						stats.TotalBoxes += len(shapes)
+						for _, s := range shapes {
+							stats.ClassCounts[s.Label]++
+						}
+					}
+				}
+			}
+		}
+
+		if hasAnnotation {
+			stats.AnnotatedCount++
+		}
+	}
+
+	return stats
+}

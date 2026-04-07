@@ -106,6 +106,25 @@ export namespace main {
 		    return a;
 		}
 	}
+	
+	export class StatsData {
+	    totalImages: number;
+	    annotatedCount: number;
+	    totalBoxes: number;
+	    classCounts: Record<string, number>;
+	
+	    static createFrom(source: any = {}) {
+	        return new StatsData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.totalImages = source["totalImages"];
+	        this.annotatedCount = source["annotatedCount"];
+	        this.totalBoxes = source["totalBoxes"];
+	        this.classCounts = source["classCounts"];
+	    }
+	}
 
 }
 

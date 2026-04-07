@@ -10,6 +10,10 @@ export function GetSaveFormat() {
   return window['go']['main']['App']['GetSaveFormat']();
 }
 
+export function GetStats() {
+  return window['go']['main']['App']['GetStats']();
+}
+
 export function LoadClassFile() {
   return window['go']['main']['App']['LoadClassFile']();
 }

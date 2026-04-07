@@ -296,6 +296,78 @@ body {
   color: var(--success);
 }
 
+/* Stats Panel */
+.stats-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#stats-arrow {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+#stats-arrow.open {
+  transform: rotate(90deg);
+}
+
+#stats-summary {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+#stats-summary .stat-item {
+  display: flex;
+  gap: 4px;
+}
+
+#stats-summary .stat-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+#stats-classes {
+  padding: 0 12px 8px;
+  font-size: 12px;
+}
+
+#stats-classes .stats-class-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 0;
+  color: var(--text-secondary);
+}
+
+#stats-classes .stats-class-item .stats-class-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#stats-classes .stats-class-item .stats-class-count {
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+#stats-classes .stats-class-bar {
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin-top: 1px;
+  transition: width 0.3s;
+}
+
 /* Modal */
 .modal {
   position: fixed;

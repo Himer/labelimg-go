@@ -6,6 +6,8 @@ export function GetClassList():Promise<Array<string>>;
 
 export function GetSaveFormat():Promise<string>;
 
+export function GetStats():Promise<main.StatsData>;
+
 export function LoadClassFile():Promise<Array<string>>;
 
 export function LoadImage(arg1:number):Promise<main.ImageData>;

@@ -554,4 +554,47 @@
   // Initial save button state
   updateSaveButton();
 
+  // --- Stats Panel ---
+  const statsToggle = document.getElementById('stats-toggle');
+  const statsContent = document.getElementById('stats-content');
+  const statsArrow = document.getElementById('stats-arrow');
+  const statsSummary = document.getElementById('stats-summary');
+  const statsClasses = document.getElementById('stats-classes');
+  let statsOpen = false;
+
+  statsToggle.addEventListener('click', () => {
+    statsOpen = !statsOpen;
+    statsContent.style.display = statsOpen ? 'block' : 'none';
+    statsArrow.classList.toggle('open', statsOpen);
+    if (statsOpen) refreshStats();
+  });
+
+  async function refreshStats() {
+    try {
+      const stats = await window.go.main.App.GetStats();
+      if (!stats) return;
+
+      statsSummary.innerHTML =
+        `<span class="stat-item">Images: <span class="stat-value">${stats.totalImages}</span></span>` +
+        `<span class="stat-item">Annotated: <span class="stat-value">${stats.annotatedCount}</span></span>` +
+        `<span class="stat-item">Boxes: <span class="stat-value">${stats.totalBoxes}</span></span>`;
+
+      const counts = stats.classCounts || {};
+      const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      const maxCount = entries.length > 0 ? entries[0][1] : 1;
+
+      statsClasses.innerHTML = entries.map(([label, count]) => {
+        const pct = Math.round(count / maxCount * 100);
+        const color = lc._labelColor(label);
+        return `<div class="stats-class-item">
+          <span class="stats-class-name"><span class="color-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgb(${color.r},${color.g},${color.b})"></span>${label}</span>
+          <span class="stats-class-count">${count}</span>
+        </div>
+        <div class="stats-class-bar" style="width:${pct}%;background:rgb(${color.r},${color.g},${color.b})"></div>`;
+      }).join('');
+    } catch (e) {
+      console.error('GetStats error:', e);
+    }
+  }
+
 })();
