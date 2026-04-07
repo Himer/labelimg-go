@@ -77,7 +77,7 @@ jobs:
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
       - name: Install Linux dependencies (arm64 cross-compile)
         if: matrix.goos == 'linux' && matrix.goarch == 'arm64'
@@ -88,7 +88,7 @@ jobs:
           echo "deb [arch=arm64] http://ports.ubuntu.com/ $(lsb_release -cs)-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
-          sudo apt-get install -y libgtk-3-dev:arm64 libwebkit2gtk-4.0-dev:arm64
+          sudo apt-get install -y libgtk-3-dev:arm64 libwebkit2gtk-4.1-dev:arm64
 
       - name: Get version
         id: version
@@ -103,7 +103,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "1"
-        run: wails build -platform ${{ matrix.goos }}/${{ matrix.goarch }}
+        run: wails build -platform ${{ matrix.goos }}/${{ matrix.goarch }} -tags webkit2_41
 
       - name: Build (linux arm64 cross-compile)
         if: matrix.goos == 'linux' && matrix.goarch == 'arm64'
@@ -113,15 +113,34 @@ jobs:
           CGO_ENABLED: "1"
           CC: aarch64-linux-gnu-gcc
           PKG_CONFIG_PATH: /usr/lib/aarch64-linux-gnu/pkgconfig
-        run: wails build -platform linux/arm64
+        run: wails build -platform linux/arm64 -tags webkit2_41
+
+      # List build output for debugging
+      - name: List build output
+        shell: bash
+        run: ls -lR build/bin/
 
       # Package
-      - name: Package (tar.gz)
-        if: matrix.archive == 'tar.gz'
+      - name: Package (macOS tar.gz)
+        if: matrix.goos == 'darwin'
         shell: bash
         working-directory: build/bin
         run: |
-          BINARY="labelimg-go${{ matrix.suffix }}"
+          ARCHIVE="labelimg-go-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz"
+          if [ -d "labelimg-go.app" ]; then
+            tar czf "${ARCHIVE}" "labelimg-go.app"
+          else
+            chmod +x labelimg-go 2>/dev/null || true
+            tar czf "${ARCHIVE}" labelimg-go
+          fi
+          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+
+      - name: Package (Linux tar.gz)
+        if: matrix.goos == 'linux'
+        shell: bash
+        working-directory: build/bin
+        run: |
+          BINARY="labelimg-go"
           ARCHIVE="labelimg-go-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz"
           chmod +x "${BINARY}" 2>/dev/null || true
           tar czf "${ARCHIVE}" "${BINARY}"
