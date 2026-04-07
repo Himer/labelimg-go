@@ -1,95 +1,132 @@
-# LabelImg Wails
+# LabelImg Go
 
-基于 Wails v2 的图片标注桌面工具，仅支持 YOLO 格式。Go 后端复用 `labelimg_go/libs` 核心库，前端使用原生 HTML5 Canvas。
+基于 [Wails v2](https://wails.io/) 的跨平台桌面图片标注工具。支持 YOLO、PascalVOC、CreateML 三种标注格式。
 
-## 项目结构
+## 下载安装
 
-```
-labelimg_wails/
-├── main.go              # Wails 入口，窗口配置
-├── app.go               # Go 后端绑定（图片加载、标注读写、目录扫描）
-├── wails.json            # Wails 项目配置
-├── go.mod               # Go 模块，依赖 wails/v2 + 本地 labelimg_go
-├── build/bin/            # 编译产物
-└── frontend/
-    ├── index.html        # 主页面布局
-    ├── package.json
-    └── src/
-        ├── canvas.js     # Canvas 绘制引擎（bbox 绘制/选择/移动/缩放）
-        ├── main.js       # 应用逻辑，连接前端 UI 与 Go 后端
-        └── style.css     # 暗色主题样式
-```
+前往 [Releases](../../releases) 页面下载对应平台的预编译包：
 
-## 依赖
+| 平台 | 架构 | 文件 |
+|------|------|------|
+| Windows | x86_64 | `labelimg-go-*-windows-amd64.zip` |
+| Windows | ARM64 | `labelimg-go-*-windows-arm64.zip` |
+| macOS | Intel | `labelimg-go-*-darwin-amd64.tar.gz` |
+| macOS | Apple Silicon | `labelimg-go-*-darwin-arm64.tar.gz` |
+| Linux | x86_64 | `labelimg-go-*-linux-amd64.tar.gz` |
+| Linux | ARM64 | `labelimg-go-*-linux-arm64.tar.gz` |
 
-- Go 1.21+
-- Node.js
-- Wails CLI v2：`go install github.com/wailsapp/wails/v2/cmd/wails@latest`
-- Windows 11 自带 WebView2
+解压后直接运行 `labelimg-go`（Windows 为 `labelimg-go.exe`）即可。
 
-> 若遇到 `git.sr.ht` 模块校验失败，设置环境变量：
-> `GONOSUMDB="git.sr.ht/*" GONOSUMCHECK="git.sr.ht/*"`
+> macOS 首次运行如提示"无法验证开发者"，在系统设置 > 隐私与安全性中点击"仍要打开"。
 
-## 开发 & 构建
+## 快速开始
 
-```bash
-# 开发模式（热重载）
-wails dev
+1. **打开图片目录** — 点击工具栏 `Open Dir` 或按 `Ctrl+U`，选择包含图片的文件夹
+2. **选择标注格式** — 工具栏右侧下拉框切换 `YOLO` / `PascalVOC` / `CreateML`
+3. **画标注框** — 在图片上拖拽鼠标画出矩形，松开后输入标签名称并确认
+4. **浏览图片** — 按 `A`/`D` 或点击右侧文件列表切换图片，切换时自动保存
+5. **手动保存** — 按 `Ctrl+S` 或点击 `Save` 按钮
 
-# 构建可执行文件
-wails build
-# 产物：build/bin/labelimg-wails.exe
-```
+### 标注格式输出
 
-## 功能
+| 格式 | 输出文件 | 说明 |
+|------|----------|------|
+| YOLO | `.txt` + `classes.txt` | 归一化中心坐标，class index 对应 classes.txt 行号 |
+| PascalVOC | `.xml` | PASCAL VOC XML 格式，含绝对像素坐标 |
+| CreateML | `.json` | Apple CreateML JSON 格式，含中心坐标和宽高 |
 
-- 打开图片目录，自然排序浏览
-- 鼠标拖拽创建矩形标注框，输入标签
-- 选择/移动/角点缩放已有标注框
-- 保存为 YOLO 格式（`.txt` + `classes.txt`）
-- 自动加载已有 YOLO 标注
-- 切换图片时自动保存
-- Undo/Redo（Ctrl+Z / Ctrl+Y，最多 50 步）
-- 预定义标签快速标注（勾选 Use Default Label，画框时跳过标签对话框）
-- 加载预定义 classes.txt（打开目录时自动加载，也可手动选择文件）
+### 快速标注模式
+
+右侧面板勾选 **Use Default Label**，在输入框填入默认标签。之后画框时会跳过标签对话框，直接使用默认标签，大幅提升标注速度。
+
+### 加载预定义类别
+
+- **自动加载**：打开目录时，若目录下存在 `classes.txt`，会自动加载为类别列表
+- **手动加载**：点击工具栏 `Classes` 按钮，选择任意 `classes.txt` 文件
 
 ## 快捷键
 
 | 快捷键 | 功能 |
 |--------|------|
-| W | 创建模式 |
-| E | 编辑模式 |
-| A | 上一张图片 |
-| D | 下一张图片 |
-| Ctrl+S | 保存标注 |
-| Ctrl+Z | 撤销 |
-| Ctrl+Y / Ctrl+Shift+Z | 重做 |
-| Del / Backspace | 删除选中框 |
-| + / - | 缩放 |
-| F | 适应窗口 |
-| 滚轮 | 缩放 |
+| `W` | 创建模式（画框） |
+| `E` | 编辑模式（选择/移动/缩放） |
+| `A` | 上一张图片 |
+| `D` | 下一张图片 |
+| `Ctrl+S` | 保存标注 |
+| `Ctrl+Z` | 撤销 |
+| `Ctrl+Y` / `Ctrl+Shift+Z` | 重做 |
+| `Del` / `Backspace` | 删除选中标注框 |
+| `+` / `-` | 缩放 |
+| `F` | 适应窗口大小 |
+| 鼠标滚轮 | 缩放 |
 | 中键拖拽 | 平移画布 |
 
-## 后端 API（app.go 绑定方法）
+## 操作说明
 
-| 方法 | 说明 |
-|------|------|
-| `SelectDirectory()` | 原生目录选择对话框 |
-| `OpenDirectory(dir)` | 扫描目录返回图片列表 |
-| `LoadImage(index)` | 加载图片（base64）+ 已有 YOLO 标注 |
-| `NextImage()` / `PrevImage()` | 前后导航 |
-| `SaveAnnotations(data)` | 保存 YOLO 标注 |
-| `GetClassList()` | 获取已知类别列表 |
-| `LoadClassFile()` | 打开文件对话框选择 classes.txt 并加载 |
+### 标注框操作
 
-## 待优化
+- **创建**：在创建模式下（`W`），拖拽鼠标画出矩形
+- **选择**：点击已有标注框（任意模式下均可选中）
+- **移动**：选中后拖拽标注框内部
+- **缩放**：选中后拖拽四个角的控制点
+- **删除**：选中后按 `Del` 或点击工具栏 `Delete` 按钮
+- **修改标签**：选中标注框后，在右侧 Label 输入框修改标签，按 `Enter` 确认
 
-- [x] 支持加载预定义 classes.txt
-- [ ] 标注框复制/粘贴
-- [x] Undo/Redo
-- [x] 预定义标签快速标注
-- [ ] 图片亮度/对比度调节
-- [ ] 标注统计面板
-- [ ] 批量自动标注（接入模型推理）
-- [ ] 跨平台构建（macOS / Linux）
-- [ ] 自定义快捷键配置
+### Save 按钮状态
+
+- **蓝色高亮**：当前有未保存的修改
+- **灰色**：已保存，无修改
+
+## 从源码构建
+
+### 依赖
+
+- Go 1.22+
+- Node.js 18+
+- Wails CLI v2
+
+```bash
+go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
+```
+
+> 若遇到 `git.sr.ht` 模块校验失败，设置环境变量：
+> ```bash
+> export GONOSUMDB="git.sr.ht/*"
+> export GONOSUMCHECK="git.sr.ht/*"
+> ```
+
+### 开发
+
+```bash
+wails dev
+```
+
+### 构建
+
+```bash
+wails build
+# 产物：build/bin/labelimg-go(.exe)
+```
+
+## 项目结构
+
+```
+labelimg-go/
+├── main.go                # Wails 入口
+├── app.go                 # Go 后端（图片加载、标注读写、目录扫描）
+├── libs/                  # 核心库（YOLO/PascalVOC/CreateML 读写）
+├── frontend/
+│   ├── index.html         # 页面布局
+│   └── src/
+│       ├── canvas.js      # Canvas 绘制引擎
+│       ├── main.js        # 应用逻辑
+│       └── style.css      # 样式
+├── build/                 # 构建资源（图标、manifest）
+├── .github/workflows/     # CI：跨平台自动构建发布
+├── wails.json             # Wails 配置
+└── go.mod
+```
+
+## License
+
+MIT

@@ -436,8 +436,8 @@ class LabelCanvas {
     if (this.drawing && this.drawStart && this.drawEnd) {
       const p1 = this.imageToScreen(this.drawStart.x, this.drawStart.y);
       const p2 = this.imageToScreen(this.drawEnd.x, this.drawEnd.y);
-      ctx.strokeStyle = '#00ff00';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ff0000';
+      ctx.lineWidth = 1;
       ctx.setLineDash([6, 3]);
       ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
       ctx.setLineDash([]);
@@ -467,7 +467,7 @@ class LabelCanvas {
     ctx.strokeStyle = selected
       ? '#ffffff'
       : `rgb(${color.r}, ${color.g}, ${color.b})`;
-    ctx.lineWidth = selected ? 2 : 1.5;
+    ctx.lineWidth = selected ? 1.5 : 1;
     ctx.strokeRect(tl.x, tl.y, sw, sh);
 
     // Label text
@@ -500,7 +500,7 @@ class LabelCanvas {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(sp.x - hs, sp.y - hs, hs * 2, hs * 2);
         ctx.strokeStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1;
         ctx.strokeRect(sp.x - hs, sp.y - hs, hs * 2, hs * 2);
       }
     }
