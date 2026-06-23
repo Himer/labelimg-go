@@ -476,6 +476,86 @@ body {
   border-color: var(--accent);
 }
 
+#dialog-label-combo {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+#dialog-label-combo #dialog-label-input {
+  margin-bottom: 0;
+  padding-right: 44px;
+}
+
+#dialog-label-dropdown-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+#dialog-label-dropdown-btn:hover {
+  filter: brightness(1.1);
+}
+
+#dialog-label-dropdown-btn:active {
+  filter: brightness(0.92);
+}
+
+#dialog-label-dropdown-btn svg {
+  pointer-events: none;
+}
+
+#dialog-label-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+#dialog-label-dropdown.open {
+  display: block;
+}
+
+#dialog-label-dropdown .dd-item {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+#dialog-label-dropdown .dd-item:hover,
+#dialog-label-dropdown .dd-item.active {
+  background: var(--bg-tertiary);
+  color: var(--accent);
+}
+
+#dialog-label-dropdown .dd-empty {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 .modal-buttons {
   display: flex;
   gap: 8px;

@@ -208,9 +208,71 @@
     return new Promise((resolve) => {
       const dialog = document.getElementById('label-dialog');
       const input = document.getElementById('dialog-label-input');
+      const ddBtn = document.getElementById('dialog-label-dropdown-btn');
+      const dd = document.getElementById('dialog-label-dropdown');
       dialog.style.display = 'flex';
       input.value = defaultLabel || '';
       updateDialogSuggestions();
+      let ddOpen = false;
+      let activeIdx = -1;
+      let ddFilterMode = false; // when true, filter by input text; otherwise show all
+
+      function renderDropdown() {
+        const filter = ddFilterMode ? input.value.trim().toLowerCase() : '';
+        const items = labelHistory.filter(l => !filter || l.toLowerCase().includes(filter));
+        dd.innerHTML = '';
+        if (items.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'dd-empty';
+          empty.textContent = labelHistory.length === 0
+            ? 'No existing labels yet'
+            : 'No match';
+          dd.appendChild(empty);
+          activeIdx = -1;
+          return;
+        }
+        items.forEach((l, i) => {
+          const it = document.createElement('div');
+          it.className = 'dd-item';
+          it.textContent = l;
+          if (i === activeIdx) it.classList.add('active');
+          it.addEventListener('mousedown', (e) => {
+            // mousedown so it fires before input blur
+            e.preventDefault();
+            input.value = l;
+            closeDropdown();
+            input.focus();
+          });
+          dd.appendChild(it);
+        });
+      }
+
+      function openDropdown() {
+        ddOpen = true;
+        activeIdx = -1;
+        dd.classList.add('open');
+        renderDropdown();
+      }
+
+      function openDropdownAll() {
+        ddFilterMode = false;
+        openDropdown();
+      }
+
+      function closeDropdown() {
+        ddOpen = false;
+        dd.classList.remove('open');
+      }
+
+      function toggleDropdown(e) {
+        if (e) e.preventDefault();
+        if (ddOpen) {
+          closeDropdown();
+        } else {
+          openDropdownAll();
+        }
+        input.focus();
+      }
 
       setTimeout(() => { input.focus(); input.select(); }, 50);
 
@@ -225,20 +287,62 @@
       }
 
       function onKeyDown(e) {
-        if (e.key === 'Enter') onOk();
-        if (e.key === 'Escape') onCancel();
+        if (ddOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+          e.preventDefault();
+          const items = dd.querySelectorAll('.dd-item');
+          if (items.length === 0) return;
+          if (e.key === 'ArrowDown') activeIdx = (activeIdx + 1) % items.length;
+          else activeIdx = (activeIdx - 1 + items.length) % items.length;
+          items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+          items[activeIdx].scrollIntoView({ block: 'nearest' });
+          return;
+        }
+        if (e.key === 'Enter') {
+          if (ddOpen && activeIdx >= 0) {
+            const items = dd.querySelectorAll('.dd-item');
+            input.value = items[activeIdx].textContent;
+            closeDropdown();
+            return;
+          }
+          onOk();
+          return;
+        }
+        if (e.key === 'Escape') {
+          if (ddOpen) { closeDropdown(); return; }
+          onCancel();
+        }
+      }
+
+      function onInput() {
+        ddFilterMode = true;
+        if (!ddOpen) openDropdown(); else renderDropdown();
+      }
+
+      function onDocClick(e) {
+        if (!dialog.contains(e.target)) return;
+        if (e.target.closest('#dialog-label-dropdown-btn')) return;
+        if (e.target.closest('#dialog-label-dropdown')) return;
+        if (e.target === input) return;
+        if (ddOpen) closeDropdown();
       }
 
       function cleanup() {
         dialog.style.display = 'none';
+        closeDropdown();
         document.getElementById('dialog-ok').removeEventListener('click', onOk);
         document.getElementById('dialog-cancel').removeEventListener('click', onCancel);
         input.removeEventListener('keydown', onKeyDown);
+        input.removeEventListener('input', onInput);
+        ddBtn.removeEventListener('mousedown', toggleDropdown);
+        document.removeEventListener('mousedown', onDocClick);
       }
 
       document.getElementById('dialog-ok').addEventListener('click', onOk);
       document.getElementById('dialog-cancel').addEventListener('click', onCancel);
       input.addEventListener('keydown', onKeyDown);
+      input.addEventListener('input', onInput);
+      ddBtn.addEventListener('mousedown', toggleDropdown);
+      document.addEventListener('mousedown', onDocClick);
     });
   }
 
