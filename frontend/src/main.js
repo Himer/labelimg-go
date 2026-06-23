@@ -128,6 +128,46 @@
     }
   };
 
+  lc.onShapeDoubleClick = function (index) {
+    if (index < 0 || index >= lc.shapes.length) return;
+    const current = lc.shapes[index].label;
+    showLabelDialog(current).then(newLabel => {
+      if (!newLabel || newLabel === current) {
+        lc.render();
+        return;
+      }
+      pushUndo();
+      lc.shapes[index].label = newLabel;
+      addToLabelHistory(newLabel);
+      labelInput.value = newLabel;
+      dirty = true;
+      lc.render();
+      updateLabelsPanel();
+      updateSaveButton();
+    });
+  };
+
+  const canvasTooltip = document.getElementById('canvas-tooltip');
+  lc.canvas.addEventListener('mouseleave', () => {
+    canvasTooltip.style.display = 'none';
+  });
+  lc.onHoverShape = function (idx, sx, sy) {
+    if (idx < 0 || lc.panMode) {
+      canvasTooltip.style.display = 'none';
+      return;
+    }
+    canvasTooltip.textContent = 'Double-click to change label';
+    canvasTooltip.style.display = 'block';
+    // Position above-right of cursor; clamp to container.
+    const cw = containerEl.clientWidth;
+    let x = sx + 14;
+    let y = sy - 28;
+    if (x + canvasTooltip.offsetWidth > cw - 4) x = cw - canvasTooltip.offsetWidth - 4;
+    if (y < 4) y = sy + 18;
+    canvasTooltip.style.left = x + 'px';
+    canvasTooltip.style.top = y + 'px';
+  };
+
   lc.onShapeModified = function () {
     pushUndo();
     dirty = true;
@@ -172,7 +212,7 @@
       input.value = defaultLabel || '';
       updateDialogSuggestions();
 
-      setTimeout(() => input.focus(), 50);
+      setTimeout(() => { input.focus(); input.select(); }, 50);
 
       function onOk() {
         cleanup();
@@ -272,23 +312,132 @@
     });
   }
 
-  function updateFilesList() {
+  // --- Virtualized files list ---
+  // Render only the rows currently visible in the scroll viewport.
+  // Avoids creating thousands of DOM nodes for large directories.
+  const FILE_ROW_HEIGHT = 24;       // keep in sync with CSS .file-item height
+  const FILE_OVERSCAN = 8;          // extra rows above/below viewport
+  let filesSpacer = null;
+  let filteredIndices = [];         // indices into `files`, after filter
+  let visibleRowNodes = new Map();  // file index -> DOM node currently rendered
+  let filesScrollScheduled = false;
+
+  function ensureFilesScaffold() {
+    if (filesSpacer && filesSpacer.parentNode === filesList) return;
     filesList.innerHTML = '';
-    fileCount.textContent = `(${files.length})`;
+    filesSpacer = document.createElement('div');
+    filesSpacer.className = 'files-spacer';
+    filesList.appendChild(filesSpacer);
+    filesList.addEventListener('scroll', onFilesScroll);
+  }
+
+  function onFilesScroll() {
+    if (filesScrollScheduled) return;
+    filesScrollScheduled = true;
+    requestAnimationFrame(() => {
+      filesScrollScheduled = false;
+      renderVisibleFiles();
+    });
+  }
+
+  function rebuildFilteredIndices() {
     const filterText = filesFilter.value.trim().toLowerCase();
+    filteredIndices.length = 0;
+    if (filterText) {
+      for (let i = 0; i < files.length; i++) {
+        if (files[i].name.toLowerCase().includes(filterText)) {
+          filteredIndices.push(i);
+        }
+      }
+    } else {
+      for (let i = 0; i < files.length; i++) filteredIndices.push(i);
+    }
+  }
 
-    files.forEach((file, i) => {
-      if (filterText && !file.name.toLowerCase().includes(filterText)) return;
+  function renderVisibleFiles() {
+    if (!filesSpacer) return;
+    const total = filteredIndices.length;
+    filesSpacer.style.height = (total * FILE_ROW_HEIGHT) + 'px';
 
+    const scrollTop = filesList.scrollTop;
+    const viewH = filesList.clientHeight;
+    let startRow = Math.floor(scrollTop / FILE_ROW_HEIGHT) - FILE_OVERSCAN;
+    let endRow = Math.ceil((scrollTop + viewH) / FILE_ROW_HEIGHT) + FILE_OVERSCAN;
+    if (startRow < 0) startRow = 0;
+    if (endRow > total) endRow = total;
+
+    const wantedFileIdx = new Set();
+    for (let row = startRow; row < endRow; row++) {
+      wantedFileIdx.add(filteredIndices[row]);
+    }
+
+    // Remove rows that scrolled out of view.
+    for (const [fileIdx, node] of visibleRowNodes) {
+      if (!wantedFileIdx.has(fileIdx)) {
+        node.remove();
+        visibleRowNodes.delete(fileIdx);
+      }
+    }
+
+    // Add rows that scrolled into view.
+    const activeIdx = currentImageData ? currentImageData.index : -1;
+    for (let row = startRow; row < endRow; row++) {
+      const fileIdx = filteredIndices[row];
+      if (visibleRowNodes.has(fileIdx)) {
+        // Reposition (filter could have changed the row index)
+        visibleRowNodes.get(fileIdx).style.top = (row * FILE_ROW_HEIGHT) + 'px';
+        continue;
+      }
+      const file = files[fileIdx];
       const item = document.createElement('div');
       item.className = 'file-item';
-      if (currentImageData && currentImageData.index === i) {
-        item.classList.add('active');
-      }
+      if (fileIdx === activeIdx) item.classList.add('active');
+      item.dataset.idx = String(fileIdx);
+      item.style.top = (row * FILE_ROW_HEIGHT) + 'px';
       item.textContent = file.name;
-      item.addEventListener('click', () => loadImageByIndex(i));
-      filesList.appendChild(item);
-    });
+      item.addEventListener('click', () => loadImageByIndex(fileIdx));
+      filesSpacer.appendChild(item);
+      visibleRowNodes.set(fileIdx, item);
+    }
+  }
+
+  function updateFilesList() {
+    ensureFilesScaffold();
+    fileCount.textContent = `(${files.length})`;
+    rebuildFilteredIndices();
+    // Drop any stale rendered rows; positions/filter may have changed.
+    for (const node of visibleRowNodes.values()) node.remove();
+    visibleRowNodes.clear();
+    renderVisibleFiles();
+  }
+
+  function setActiveFile(index) {
+    // Remove active from any currently rendered row.
+    for (const [idx, node] of visibleRowNodes) {
+      if (idx !== index) node.classList.remove('active');
+    }
+    const node = visibleRowNodes.get(index);
+    if (node) node.classList.add('active');
+    scrollFileIntoView(index);
+  }
+
+  function scrollFileIntoView(fileIdx) {
+    if (!filesSpacer) return;
+    const row = filteredIndices.indexOf(fileIdx);
+    if (row < 0) return; // hidden by filter
+    const top = row * FILE_ROW_HEIGHT;
+    const bottom = top + FILE_ROW_HEIGHT;
+    const viewTop = filesList.scrollTop;
+    const viewBottom = viewTop + filesList.clientHeight;
+    if (top < viewTop) {
+      filesList.scrollTop = top;
+    } else if (bottom > viewBottom) {
+      filesList.scrollTop = bottom - filesList.clientHeight;
+    }
+    renderVisibleFiles();
+    // After scroll, ensure new row gets the active class.
+    const node = visibleRowNodes.get(fileIdx);
+    if (node) node.classList.add('active');
   }
 
   function updateStatus() {
@@ -302,9 +451,9 @@
 
   // --- Backend calls ---
 
-  async function openDirectory() {
+  async function openDirectory(presetDir) {
     try {
-      const dir = await window.go.main.App.SelectDirectory();
+      const dir = presetDir || await window.go.main.App.SelectDirectory();
       if (!dir) return;
       files = await window.go.main.App.OpenDirectory(dir);
       if (files && files.length > 0) {
@@ -347,7 +496,7 @@
       dirty = false;
       resetUndoRedo();
       updateLabelsPanel();
-      updateFilesList();
+      setActiveFile(currentImageData.index);
       updateStatus();
       updateSaveButton();
     } catch (e) {
@@ -383,7 +532,7 @@
       dirty = false;
       resetUndoRedo();
       updateLabelsPanel();
-      updateFilesList();
+      setActiveFile(currentImageData.index);
       updateStatus();
       updateSaveButton();
     } catch (e) {
@@ -407,7 +556,7 @@
       dirty = false;
       resetUndoRedo();
       updateLabelsPanel();
-      updateFilesList();
+      setActiveFile(currentImageData.index);
       updateStatus();
       updateSaveButton();
     } catch (e) {
@@ -448,7 +597,7 @@
 
   // --- Toolbar buttons ---
 
-  document.getElementById('btn-open').addEventListener('click', openDirectory);
+  document.getElementById('btn-open').addEventListener('click', () => openDirectory());
   document.getElementById('btn-save').addEventListener('click', saveAnnotations);
   document.getElementById('btn-load-classes').addEventListener('click', loadClassFile);
   document.getElementById('btn-prev').addEventListener('click', prevImage);
@@ -456,6 +605,77 @@
   document.getElementById('btn-zoomin').addEventListener('click', () => lc.zoomIn());
   document.getElementById('btn-zoomout').addEventListener('click', () => lc.zoomOut());
   document.getElementById('btn-fit').addEventListener('click', () => lc.fitWindow());
+  const btnPan = document.getElementById('btn-pan');
+  function togglePanMode(force) {
+    const enabled = typeof force === 'boolean' ? force : !lc.panMode;
+    lc.setPanMode(enabled);
+    btnPan.classList.toggle('active', enabled);
+    btnPan.title = enabled
+      ? 'Pan Mode: ON — drag image with left mouse (H)'
+      : 'Pan Mode (H): drag image with left mouse';
+  }
+  btnPan.addEventListener('click', () => togglePanMode());
+  const btnLockZoom = document.getElementById('btn-lock-zoom');
+  btnLockZoom.addEventListener('click', () => {
+    const locked = !lc.zoomLocked;
+    lc.setZoomLocked(locked);
+    btnLockZoom.classList.toggle('active', locked);
+    btnLockZoom.title = locked
+      ? 'Lock Zoom: ON (current scale kept across images)'
+      : 'Lock Zoom: keep current scale across images';
+  });
+
+  const btnCopyPath = document.getElementById('btn-copy-path');
+  btnCopyPath.addEventListener('click', async () => {
+    if (!currentImageData || !currentImageData.path) {
+      console.warn('CopyPath: no image loaded');
+      return;
+    }
+    const path = currentImageData.path;
+    const label = btnCopyPath.querySelector('span');
+    const originalText = label.textContent;
+
+    let ok = false;
+    // Prefer Wails runtime clipboard (most reliable in webview).
+    try {
+      if (window.runtime && typeof window.runtime.ClipboardSetText === 'function') {
+        ok = await window.runtime.ClipboardSetText(path);
+      }
+    } catch (e) {
+      console.error('ClipboardSetText error:', e);
+    }
+    // Fallback: navigator.clipboard
+    if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(path);
+        ok = true;
+      } catch (e) {
+        console.error('navigator.clipboard error:', e);
+      }
+    }
+    // Last resort: execCommand
+    if (!ok) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = path;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (e) {
+        console.error('execCommand copy error:', e);
+      }
+    }
+
+    btnCopyPath.classList.add('active');
+    label.textContent = ok ? 'Copied!' : 'Copy failed';
+    setTimeout(() => {
+      btnCopyPath.classList.remove('active');
+      label.textContent = originalText;
+    }, 1200);
+  });
   document.getElementById('btn-undo').addEventListener('click', undo);
   document.getElementById('btn-redo').addEventListener('click', redo);
 
@@ -505,6 +725,10 @@
         lc.mode = 'edit';
         document.getElementById('btn-create').classList.remove('active');
         lc.canvas.style.cursor = 'default';
+        break;
+      case 'h':
+      case 'H':
+        if (!ctrl) togglePanMode();
         break;
       case 'd':
       case 'D':
@@ -610,5 +834,17 @@
       console.error('GetStats error:', e);
     }
   }
+
+  // --- Auto-open directory passed via CLI args ---
+  (async () => {
+    try {
+      const initialDir = await window.go.main.App.GetInitialDir();
+      if (initialDir) {
+        await openDirectory(initialDir);
+      }
+    } catch (e) {
+      console.error('GetInitialDir error:', e);
+    }
+  })();
 
 })();

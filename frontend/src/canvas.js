@@ -15,6 +15,7 @@ class LabelCanvas {
     this.scale = 1;
     this.offsetX = 0;
     this.offsetY = 0;
+    this.zoomLocked = false;
 
     // Shapes
     this.shapes = [];
@@ -37,12 +38,15 @@ class LabelCanvas {
     this.panning = false;
     this.panStart = null;
     this.panOffsetStart = null;
+    this.panMode = false;          // when true, left-click pans instead of drawing/editing
 
     // Callbacks
     this.onShapeCreated = null;
     this.onShapeSelected = null;
     this.onShapeModified = null;
+    this.onShapeDoubleClick = null;
     this.onMouseMove = null;
+    this.onHoverShape = null;
 
     // Corner handle size
     this.handleSize = 6;
@@ -67,8 +71,22 @@ class LabelCanvas {
     this.canvas.addEventListener('mousedown', (e) => this._onMouseDown(e));
     this.canvas.addEventListener('mousemove', (e) => this._onMouseMove(e));
     this.canvas.addEventListener('mouseup', (e) => this._onMouseUp(e));
+    this.canvas.addEventListener('dblclick', (e) => this._onDblClick(e));
     this.canvas.addEventListener('wheel', (e) => this._onWheel(e));
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  _onDblClick(e) {
+    if (this.panMode) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const imgPos = this.screenToImage(sx, sy);
+    const hitIdx = this._hitShape(imgPos.x, imgPos.y);
+    if (hitIdx < 0) return;
+    this.selectedIndex = hitIdx;
+    this.render();
+    if (this.onShapeDoubleClick) this.onShapeDoubleClick(hitIdx);
   }
 
   // Convert screen coords to image coords
@@ -92,8 +110,9 @@ class LabelCanvas {
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
 
-    // Middle mouse button or right button for panning
-    if (e.button === 1 || e.button === 2) {
+    // Middle mouse button or right button for panning,
+    // or any button when pan mode is active.
+    if (e.button === 1 || e.button === 2 || (this.panMode && e.button === 0)) {
       this.panning = true;
       this.panStart = { x: sx, y: sy };
       this.panOffsetStart = { x: this.offsetX, y: this.offsetY };
@@ -200,6 +219,10 @@ class LabelCanvas {
     }
 
     // Update cursor based on hover state
+    if (this.panMode) {
+      this.canvas.style.cursor = 'grab';
+      return;
+    }
     if (this.selectedIndex >= 0) {
       const corner = this._hitCorner(sx, sy, this.shapes[this.selectedIndex]);
       if (corner >= 0) {
@@ -209,11 +232,16 @@ class LabelCanvas {
     }
 
     const hitIdx = this._hitShape(imgPos.x, imgPos.y);
-    if (hitIdx >= 0 && this.mode === 'edit') {
-      this.canvas.style.cursor = 'move';
+    if (hitIdx >= 0) {
+      // Hovering over a shape: pointer hints "clickable" (double-click to edit label).
+      this.canvas.style.cursor = this.mode === 'edit' ? 'move' : 'pointer';
     } else {
       this.canvas.style.cursor = this.mode === 'create' ? 'crosshair' : 'default';
     }
+    this._hoverShapeIdx = hitIdx;
+    this._hoverScreenX = sx;
+    this._hoverScreenY = sy;
+    if (this.onHoverShape) this.onHoverShape(hitIdx, sx, sy);
 
     // Re-render for crosshair update in create mode
     if (this.mode === 'create' && this.image) {
@@ -224,7 +252,9 @@ class LabelCanvas {
   _onMouseUp(e) {
     if (this.panning) {
       this.panning = false;
-      this.canvas.style.cursor = this.mode === 'create' ? 'crosshair' : 'default';
+      this.canvas.style.cursor = this.panMode
+        ? 'grab'
+        : (this.mode === 'create' ? 'crosshair' : 'default');
       return;
     }
 
@@ -338,9 +368,30 @@ class LabelCanvas {
 
     this.image = new Image();
     this.image.onload = () => {
-      this.fitWindow();
+      if (this.zoomLocked && this.scale > 0) {
+        // Preserve current scale; just re-center the image within the canvas.
+        this.offsetX = (this.canvas.width - this.imgWidth * this.scale) / 2;
+        this.offsetY = (this.canvas.height - this.imgHeight * this.scale) / 2;
+        this.render();
+        if (this.onZoomChanged) this.onZoomChanged(this.scale);
+      } else {
+        this.fitWindow();
+      }
     };
     this.image.src = dataUrl;
+  }
+
+  setZoomLocked(locked) {
+    this.zoomLocked = !!locked;
+  }
+
+  setPanMode(enabled) {
+    this.panMode = !!enabled;
+    if (this.panMode) {
+      this.canvas.style.cursor = 'grab';
+    } else {
+      this.canvas.style.cursor = this.mode === 'create' ? 'crosshair' : 'default';
+    }
   }
 
   setShapes(shapes) {

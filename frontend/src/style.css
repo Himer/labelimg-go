@@ -133,6 +133,26 @@ body {
   cursor: crosshair;
 }
 
+#canvas-tooltip {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font-size: 11px;
+  border-radius: 3px;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+#status-hint {
+  margin-left: auto;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  font-style: italic;
+}
+
 #status-bar {
   position: absolute;
   bottom: 0;
@@ -294,10 +314,22 @@ body {
 #files-list {
   overflow-y: auto;
   flex: 1;
+  position: relative;
+}
+
+#files-list .files-spacer {
+  position: relative;
+  width: 100%;
 }
 
 #files-list .file-item {
-  padding: 5px 12px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 12px;
+  box-sizing: border-box;
   cursor: pointer;
   font-size: 12px;
   color: var(--text-secondary);

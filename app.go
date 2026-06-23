@@ -25,6 +25,7 @@ type App struct {
 	saveFormat string
 	classList  []string
 	settings   *libs.Settings
+	initialDir string
 }
 
 // NewApp creates a new App.
@@ -40,6 +41,18 @@ func (a *App) startup(ctx context.Context) {
 	a.settings.Load()
 }
 
+// SetInitialDir stores a directory provided via CLI args, to be auto-opened
+// by the frontend on startup. Called before wails.Run.
+func (a *App) SetInitialDir(dir string) {
+	a.initialDir = dir
+}
+
+// GetInitialDir returns the directory passed via CLI args (or "" if none).
+// The frontend calls this on load and, if non-empty, opens it automatically.
+func (a *App) GetInitialDir() string {
+	return a.initialDir
+}
+
 // FileInfo represents an image file entry.
 type FileInfo struct {
 	Name  string `json:"name"`
@@ -53,6 +66,7 @@ type ImageData struct {
 	Width      int         `json:"width"`
 	Height     int         `json:"height"`
 	Filename   string      `json:"filename"`
+	Path       string      `json:"path"`
 	Index      int         `json:"index"`
 	Total      int         `json:"total"`
 	Shapes     []ShapeJSON `json:"shapes"`
@@ -214,6 +228,7 @@ func (a *App) LoadImage(index int) (*ImageData, error) {
 		Width:      cfg.Width,
 		Height:     cfg.Height,
 		Filename:   filepath.Base(imgPath),
+		Path:       imgPath,
 		Index:      index,
 		Total:      len(a.imgList),
 		Shapes:     shapes,

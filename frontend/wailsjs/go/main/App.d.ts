@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function GetClassList():Promise<Array<string>>;
 
+export function GetInitialDir():Promise<string>;
+
 export function GetSaveFormat():Promise<string>;
 
 export function GetStats():Promise<main.StatsData>;
@@ -23,5 +25,7 @@ export function SaveAnnotations(arg1:main.AnnotationData):Promise<void>;
 export function SelectDirectory():Promise<string>;
 
 export function SelectSaveDirectory():Promise<string>;
+
+export function SetInitialDir(arg1:string):Promise<void>;
 
 export function SetSaveFormat(arg1:string):Promise<void>;

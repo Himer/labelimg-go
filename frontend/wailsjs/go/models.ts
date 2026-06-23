@@ -67,6 +67,7 @@ export namespace main {
 	    width: number;
 	    height: number;
 	    filename: string;
+	    path: string;
 	    index: number;
 	    total: number;
 	    shapes: ShapeJSON[];
@@ -82,6 +83,7 @@ export namespace main {
 	        this.width = source["width"];
 	        this.height = source["height"];
 	        this.filename = source["filename"];
+	        this.path = source["path"];
 	        this.index = source["index"];
 	        this.total = source["total"];
 	        this.shapes = this.convertValues(source["shapes"], ShapeJSON);

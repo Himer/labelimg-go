@@ -6,6 +6,10 @@ export function GetClassList() {
   return window['go']['main']['App']['GetClassList']();
 }
 
+export function GetInitialDir() {
+  return window['go']['main']['App']['GetInitialDir']();
+}
+
 export function GetSaveFormat() {
   return window['go']['main']['App']['GetSaveFormat']();
 }
@@ -44,6 +48,10 @@ export function SelectDirectory() {
 
 export function SelectSaveDirectory() {
   return window['go']['main']['App']['SelectSaveDirectory']();
+}
+
+export function SetInitialDir(arg1) {
+  return window['go']['main']['App']['SetInitialDir'](arg1);
 }
 
 export function SetSaveFormat(arg1) {
