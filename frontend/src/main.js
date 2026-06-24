@@ -725,8 +725,8 @@
     lc.setZoomLocked(locked);
     btnLockZoom.classList.toggle('active', locked);
     btnLockZoom.title = locked
-      ? 'Lock Zoom: ON (current scale kept across images)'
-      : 'Lock Zoom: keep current scale across images';
+      ? '锁定缩放：已开启（切换图片时保持当前缩放）'
+      : '锁定缩放比例：切换图片时保持当前缩放';
   });
 
   const btnCopyPath = document.getElementById('btn-copy-path');
